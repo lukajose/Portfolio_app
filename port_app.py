@@ -19,7 +19,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 asset = get_stock_data('TSLA')
 colors = {
     'background': '#ffffff',
-    'text': '#ff1aff'
+    'text': '#111111'
 }
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
