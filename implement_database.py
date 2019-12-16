@@ -4,12 +4,17 @@ import json
 import time
 
 
-def insert_asset(stock,id):
+def insert_asset(stock,id,found_stock):
     print('Inserting asset: ',stock,'id: ',id)
     try:
-        query = 'insert into Asset values({},'.format(id) + "'" + stock + "'"
-        query += ",'"+ 'stock'+"'," 'True)'
-        cur.execute(query)
+            if found_stock:
+                query = 'insert into Asset values({},'.format(id) + "'" + stock + "'"
+                query += ",'"+ 'stock'+"'," 'True)'
+                cur.execute(query)
+            else:
+                query = 'insert into Asset values({},'.format(id) + "'" + stock + "'"
+                query += ",'"+ 'stock'+"'," 'False)'
+                cur.execute(query)
     except Exception as e:
         print('Couldnt update Asset table: ',e)
 
@@ -44,10 +49,10 @@ def insert_dailydata(df,stock,id):
 def get_stock_data(ticker):
     print('getting data ...',ticker)
     try:
-        df = web.DataReader(stock_test,'yahoo')
+        df = web.DataReader(ticker,'yahoo')
         print('Found!')
     except Exception as e:
-        print('stock not found in data reader: ',e,stock_test)
+        print('stock not found in data reader: ',e,ticker)
         df = None
     return df
 
@@ -75,14 +80,26 @@ if __name__ == "__main__":
     tickers = json.load(file)
     #print(tickers)
     file.close()
+    stock_id = 1
     for key in tickers.keys():
         for stock in tickers[key]:
-            df = web.DataReader(stock)
-            cur.execute('insert into Asset()')"""
-    stock_id = 1
+            df = get_stock_data(stock)
+            if df == None:
+                insert_asset(stock,stock_id,False)
+                continue
+            else:
+                insert_asset(stock,stock_id,True)
+                insert_hasdaily(stock,stock_id)
+                insert_dailydata(df,stock,stock_id)
+                stock_id += 1
+            print('waiting ..')
+            time.sleep(3)
+            print('Go!')
 
-    df = get_stock_data(stock_test)
-    insert_asset(stock_test,stock_id)
+    
+
+    
+    
     insert_hasdaily(stock_test,stock_id)
     if df is not None:
         insert_dailydata(df,stock_test,stock_id)   
