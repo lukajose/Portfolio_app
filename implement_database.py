@@ -2,17 +2,17 @@ import psycopg2 as pg
 import pandas_datareader as web
 import json
 import time
-
+from get_credentials import get_credentials,Connect_Financial_db
 
 def insert_asset(stock,id,found_stock):
     print('Inserting asset: ',stock,'id: ',id)
     try:
             if found_stock:
-                query = 'insert into Asset values({},'.format(id) + "'" + stock + "'"
+                query = 'insert into Equities values({},'.format(id) + "'" + stock + "'"
                 query += ",'"+ 'stock'+"'," 'True)'
                 cur.execute(query)
             else:
-                query = 'insert into Asset values({},'.format(id) + "'" + stock + "'"
+                query = 'insert into Equities values({},'.format(id) + "'" + stock + "'"
                 query += ",'"+ 'stock'+"'," 'False)'
                 cur.execute(query)
     except Exception as e:
@@ -31,7 +31,7 @@ def insert_dailydata(df,stock,id):
     for index,row in df.iterrows():
         date = str(index)[:10]
         try:
-            cur.execute("""insert into dailydata values ('{}',{},{},{},{},{},{},{})""".format(
+            cur.execute("""insert into dailydata_equities values ('{}',{},{},{},{},{},{},{})""".format(
                 date,
                 id,
                 row['High'],
@@ -45,7 +45,60 @@ def insert_dailydata(df,stock,id):
         except Exception as e:
             print('Inserting daily data failed!: ',e)
             continue
-        
+
+def insert_dailydata_riskFree(df,stock,id):
+    print('inserting dailydata_riskfree: {}'.format(stock))
+    for index,row in df.iterrows():
+        date = str(index)[:10]
+        try:
+            cur.execute("""insert into dailydata_riskfree values ('{}',{},{},{},{},{},{},{})""".format(
+                date,
+                id,
+                row['High'],
+                row['Low'],
+                row['Open'],
+                row['Close'],
+                row['Volume'],
+                row['Adj Close']
+                )
+            )
+        except Exception as e:
+            print('Inserting daily data failed!: ',e)
+            continue
+
+def insert_dailydata_market(df,stock,id):
+    print('inserting dailydata_riskfree: {}'.format(stock))
+    for index,row in df.iterrows():
+        date = str(index)[:10]
+        try:
+            cur.execute("""insert into dailydata_market values ('{}',{},{},{},{},{},{},{})""".format(
+                date,
+                id,
+                row['High'],
+                row['Low'],
+                row['Open'],
+                row['Close'],
+                row['Volume'],
+                row['Adj Close']
+                )
+            )
+        except Exception as e:
+            print('Inserting daily data failed!: ',e)
+            continue
+
+def insert_RiskFree(id,ticker,description,country):
+    try:
+        cur.execute("""insert into RiskFree values({},'{}','{}','{}')""".format(id,ticker,description,country))
+    except Exception as e:
+        print('Failed to insert risk free data: ',e)
+
+def insert_market(id,ticker,name,country):
+    try:
+        cur.execute("""insert into Market values({},'{}','{}','{}')""".format(id,ticker,name,country))
+    except Exception as e:
+        print('Failed to insert market data: ',e)
+
+
 def get_stock_data(ticker):
     print('getting data ...',ticker)
     try:
@@ -59,22 +112,8 @@ def get_stock_data(ticker):
 
 if __name__ == "__main__":
     #========== DB postgresql ==================
-    conn = pg.connect(
-            host="localhost",
-            user="postgres",
-            password= "Mayo199515??",
-            database = "financial_db"
-        )
+    conn = Connect_Financial_db()
     cur = conn.cursor()
-    # execute a statement
-    print('PostgreSQL database version:')
-    try:
-        cur.execute('SELECT version()')
-    except Exception as e:
-        print('Couldnt connect to db: ',e)
-    # display the PostgreSQL database server version
-    db_version = cur.fetchone()
-    print(db_version)
 
     file = open('ticker_text.json','r')
     tickers = json.load(file)
@@ -82,29 +121,27 @@ if __name__ == "__main__":
     file.close()
     stock_id = 1
     for key in tickers.keys():
+        #check_emergency_commit()
         for stock in tickers[key]:
             df = get_stock_data(stock)
-            if df == None:
+            if df is None:
                 insert_asset(stock,stock_id,False)
+                stock_id += 1
                 continue
             else:
                 insert_asset(stock,stock_id,True)
                 insert_hasdaily(stock,stock_id)
                 insert_dailydata(df,stock,stock_id)
                 stock_id += 1
-            print('waiting ..')
-            time.sleep(3)
-            print('Go!')
+            print('next faster! ..')
 
-    
-
-    
-    
-    insert_hasdaily(stock_test,stock_id)
-    if df is not None:
-        insert_dailydata(df,stock_test,stock_id)   
-    else:
-        print('Skipping stock') 
+    #Stocks done get 1 risk free asset for now and 1 market NASDAQ
+    rf = get_stock_data('^IRX')
+    nasdaq = get_stock_data('^IXIC')
+    insert_market(1,'^IXIC','NASDAQ','USA')
+    insert_RiskFree(1,'^IRX','13 Week Treasury Tbill','AUSTRALIA')
+    insert_dailydata_riskFree(rf,'^IRX',1)
+    insert_dailydata_market(nasdaq,'^IXIC',1)
 
 
     cur.close()
