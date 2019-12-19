@@ -1,1 +1,1 @@
-web: gunicorn frontend/port_app:server
+web: gunicorn -- chdir frontend port_app:server
