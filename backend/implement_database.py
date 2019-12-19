@@ -1,5 +1,6 @@
 import psycopg2 as pg
 import pandas_datareader as web
+import pandas as pd
 import json
 import time
 from get_credentials import get_credentials,Connect_Financial_db
@@ -50,6 +51,7 @@ def insert_dailydata_riskFree(df,stock,id):
     print('inserting dailydata_riskfree: {}'.format(stock))
     for index,row in df.iterrows():
         date = str(index)[:10]
+        print('date: ',date,'index: ', index)
         try:
             cur.execute("""insert into dailydata_riskfree values ('{}',{},{},{},{},{},{},{})""".format(
                 date,
@@ -110,11 +112,23 @@ def get_stock_data(ticker):
     return df
 
 
+def transform_data(df):
+    print('Transforming....\n ',df.head(10))
+    df.index = pd.to_datetime(df['Date'])
+    df = df.rename(columns={'Price':'Close'})
+    df['Volume'] = 0
+    df['Adj Close'] = 0
+    print('Transforming....\n ',df.head(10))
+    return df
+
+
+
+
 if __name__ == "__main__":
     #========== DB postgresql ==================
     conn = Connect_Financial_db()
     cur = conn.cursor()
-
+    """
     file = open('ticker_text.json','r')
     tickers = json.load(file)
     #print(tickers)
@@ -136,14 +150,17 @@ if __name__ == "__main__":
             print('next faster! ..')
 
     #Stocks done get 1 risk free asset for now and 1 market NASDAQ
-    rf = get_stock_data('^IRX')
     nasdaq = get_stock_data('^IXIC')
     insert_market(1,'^IXIC','NASDAQ','USA')
-    insert_RiskFree(1,'^IRX','13 Week Treasury Tbill','AUSTRALIA')
-    insert_dailydata_riskFree(rf,'^IRX',1)
     insert_dailydata_market(nasdaq,'^IXIC',1)
-
-
+    """
+    
+    #inserting a 10 year aussie bond into the db as rf
+    aus_bond = pd.read_csv('Aussie_bond.csv') #data from investing.com
+    aus_bond = transform_data(aus_bond)
+    insert_RiskFree(1,'AUS_BOND','10 year aussie bond','Australia')
+    insert_dailydata_riskFree(aus_bond,'AUS_BOND',1) 
+    
     cur.close()
     conn.commit()
     conn.close()

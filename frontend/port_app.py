@@ -5,12 +5,23 @@ import dash_html_components as html
 from flask import Flask
 import pandas_datareader as web
 import datetime
+import pandas as pd
 
 def get_stock_data(ticker):
-    start = datetime.datetime(2014, 11, 14)
-    end = datetime.datetime(2019, 11, 13)
-    data = web.DataReader("ACRGF", 'yahoo', start, end)
+    data = web.DataReader(ticker, 'yahoo')
     return data
+
+def get_returns(stock):
+    stock['Returns'] = (stock['Close'] / stock['Close'].shift(1))-1
+    return stock
+
+def transform_data(df):
+    #print('Transforming....\n ',df.head(10))
+    df.index = pd.to_datetime(df['Date'])
+    df = df.rename(columns={'Price':'Close'})
+    df = get_returns(df)
+    return df
+
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -18,6 +29,8 @@ server = Flask(__name__)
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 asset = get_stock_data('TSLA')
+df = pd.read_csv('../backend/Aussie_bond.csv') #data from investing.com
+auss_bond = transform_data(df) 
 colors = {
     'background': '#ffffff',
     'text': '#111111'
@@ -38,7 +51,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     }),
 
     dcc.Graph(
-        id='example-graph-2',
+        id='Portfolio app',
         figure={
             'data': [
                 {'x':list(asset.index),'y':list(asset['Close'])}
@@ -49,9 +62,25 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                 }
             }
         }
+    ),
+    html.Div(children='Risk Free Asset returns', style={
+        'textAlign': 'center',
+        'color': colors['text']
+    }),
+    dcc.Graph(
+        id = 'individual_stock',
+        figure={
+            'data': [
+                {'x':list(auss_bond.index),'y':list(auss_bond['Returns'])}
+            ],
+            'layout': {
+                'font': {
+                    'color':colors['text']
+                }
+            }
+        }
     )
 ])
-
 
 
 
