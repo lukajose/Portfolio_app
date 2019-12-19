@@ -42,20 +42,6 @@ if __name__ == "__main__":
     conn = Connect_Financial_db()
     cur = conn.cursor()
     
-    df = pd.DataFrame()
-
-    nasdaq = get_returns(nasdaq)
-    rf = get_returns(rf)
-    df['Excess_Returns'] = nasdaq['Returns'] - rf['Returns']
-    df['Risk_free'] = rf['Returns']
-    fig,ax = plt.subplots(figsize=(7,7))
-    sctr = ax.scatter(x=df.index,y=df['Risk_free'], c=df['Risk_free'], cmap='RdYlGn')
-    ax.set_title('Excess returns over time')
-    cur.execute('Select close from dailydata where id = 1')
-    ListTupl= cur.fetchall()
-    X = np.array(ListTupl)
-
-    plt.show()
 
     cur.close()
     conn.close()

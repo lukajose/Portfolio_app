@@ -16,6 +16,7 @@ def get_stock_data(ticker):
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 server = Flask(__name__)
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = app.server
 asset = get_stock_data('TSLA')
 colors = {
     'background': '#ffffff',
