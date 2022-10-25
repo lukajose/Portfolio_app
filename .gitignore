@@ -1,2 +1,4 @@
 #Ignore credentials file
 credentials.txt
+/__pycache__/
+/venv/
